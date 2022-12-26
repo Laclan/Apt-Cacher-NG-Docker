@@ -1,0 +1,2 @@
+# This Points to he Script
+Acquire::http::Proxy-Auto-Detect "/mnt/apt-script/apt-proxy-detect.sh";

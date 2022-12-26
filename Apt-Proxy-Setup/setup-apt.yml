@@ -1,0 +1,21 @@
+- hosts: 
+# Setup the Hosts for the scripting to be executing
+  ignore_unreachable: yes
+  tasks:
+  - name: Create a directory apt-script if it does not exist
+    ansible.builtin.file:
+      path: /mnt/apt-script
+      state: directory
+      mode: '0777'
+  - name: Copy Script to System
+    ansible.builtin.copy:
+      src: ~/Apt-Proxy-Setup/apt-proxy-detect.sh
+      dest: /mnt/apt-script/apt-proxy-detect.sh
+      owner: root
+      mode: '0777'
+  - name: Make Proxy File
+    ansible.builtin.copy:
+      src: ~/Apt-Proxy-Setup/01proxy
+      dest: /etc/apt/apt.conf.d
+      owner: root
+      mode: '0777'

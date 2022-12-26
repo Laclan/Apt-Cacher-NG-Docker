@@ -1,0 +1,24 @@
+version: "3"
+
+services:
+  apt-cacher-ng:
+    image: custom-apt-cacher-ng:latest
+    container_name: apt-cacher-ng
+    restart: unless-stopped
+    env_file:
+    - .env
+    volumes:
+    # Mapping for the Cache Directory
+      - "${VOL_PATH}/cache:/var/cache/apt-cacher-ng"
+    # Mapping for the Logs Folder
+      - "${VOL_PATH}/logs:/var/log/apt-cacher-ng"
+    # Mapping the Local ACNG Conf File to the Container ACNG.conf file
+      - "${ACNGCONF_PATH}/acng.conf:/etc/apt-cacher-ng/acng.conf:ro"
+    ports:
+      - 3142:3142/tcp
+    networks:
+      - nginx-proxy-manager-external-network
+
+networks:
+  nginx-proxy-manager-external-network:
+    external: true

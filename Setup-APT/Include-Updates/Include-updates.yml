@@ -1,0 +1,53 @@
+# Part 0: Setup the Apt Cache and Aptitude
+- hosts: Master-Docker-Container.Stoney.One
+  ignore_unreachable: yes
+  tasks:
+  - name: Create a directory apt-script if it does not exist
+    ansible.builtin.file:
+      path: /mnt/apt-script
+      state: directory
+      mode: '0777'
+  - name: Copy APT Proxy Script
+    ansible.builtin.copy:
+      src: /home/tetio/ansible-playbooks/Setup-APT/apt-proxy-detect.sh
+      dest: /mnt/apt-script/apt-proxy-detect.sh
+      owner: root
+      mode: '0777'
+  - name: Setup the APT Conf - Proxy File
+    ansible.builtin.copy:
+      src: /home/tetio/ansible-playbooks/Setup-APT/01proxy
+      dest: /etc/apt/apt.conf.d
+      owner: root
+      mode: '0777'
+  - name: Install aptitude (state=present is optional)
+    ansible.builtin.apt:
+      name: aptitude
+      state: present
+  - name: Set timezone to Australia/Sydney
+    community.general.timezone:
+      name: Australia/Sydney
+  # - name: Run a script to Fix Time APT Clock
+  #   ansible.builtin.shell: command sudo hwclock --hctosys 
+
+# Part 1: Update Test Enviroment Docker and APT Cache
+- hosts: Master-Docker-Container.Stoney.One
+  ignore_unreachable: yes
+  tasks:
+  - name: Update all installed packages using APT module
+    ansible.builtin.apt:
+      state: latest
+      update_cache: yes
+      upgrade: yes
+    register: apt_update_status
+
+  - name: Remove packages not needed anymore
+    ansible.builtin.apt:
+      autoremove: yes
+
+  - name: Reboot when packages were updated
+    reboot:
+      post_reboot_delay: 60
+    when: apt_update_status.changed
+
+  roles:
+    - sbaerlocher.qemu-guest-agent

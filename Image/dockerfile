@@ -1,0 +1,52 @@
+# Note: Some Details Referenced from https://github.com/sameersbn/docker-apt-cacher-ng/blob/master/Dockerfile
+
+# Base Details
+FROM ubuntu:jammy
+LABEL maintainer="tetio@stoney.one"
+
+# Enviromental Variables
+ENV APT_CACHER_NG_VERSION=3.7.4 \
+    APT_CACHER_NG_CACHE_DIR=/var/cache/apt-cacher-ng \
+    APT_CACHER_NG_LOG_DIR=/var/log/apt-cacher-ng \
+    APT_CACHER_NG_USER=apt-cacher-ng
+
+# Update APT
+RUN apt update -y && \
+    # Set APT to no interactive mode
+    DEBIAN_FRONTEND=noninteractive apt install --no-install-recommends -y \
+    # Install APT-Cacher-NG, Ca-Certificates and Wget
+    apt-cacher-ng=${APT_CACHER_NG_VERSION}* ca-certificates wget && \
+    # Clean up
+    rm -rf /var/lib/apt/lists/* && \
+# Add Australia Repos
+    ## Add Ubuntu Au Repo
+    echo 'http://au.archive.ubuntu.com/ubuntu/' >> /etc/apt-cacher-ng/backends_ubuntu && \
+    # Add Debian AU Repo 
+    echo 'http://ftp.au.debian.org/debian' >> /etc/apt-cacher-ng/backends_debian && \
+    # Add Proxmox Debian Repo
+    echo 'http://download.proxmox.com/debian/pve' >> /etc/apt-cacher-ng/backends_debian && \
+    # Add Proxmox Debian Repo
+    echo 'http://download.proxmox.com/debian/pbs' >> /etc/apt-cacher-ng/backends_debian
+
+# Copy the direcotry-build.sh File and Set the Permissions
+COPY directory-build.sh /mnt/directory-build.sh
+RUN chmod 755 /mnt/directory-build.sh
+
+# Copy the EntryPoint.sh File and Set the Permissions
+COPY entrypoint.sh /sbin/entrypoint.sh
+RUN chmod 755 /sbin/entrypoint.sh
+
+# Expose the apt-cacher-ng port to be binded
+EXPOSE 3142/tcp
+EXPOSE 3142/udp
+
+# Run a Health Check Every 10 Seconds with 2 Seconds to Reply with 3 Retrys before dead
+HEALTHCHECK --interval=10s --timeout=2s --retries=3 \
+    CMD wget -q -t1 -O /dev/null  http://localhost:3142/acng-report.html || exit 1
+
+# Set the Entry Point Location
+# ENTRYPOINT ["/sbin/entrypoint.sh"]
+# Tail All Logs Files within the System
+CMD ./mnt/directory-build.sh && \ 
+    ./sbin/entrypoint.sh && \
+    tail -f /var/log/apt-cacher-ng/*
